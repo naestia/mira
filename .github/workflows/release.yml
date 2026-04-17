@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - master
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: version
+        run: |
+          if [ -f "package.json" ]; then
+            echo "Using package.json"
+            VERSION=$(node -p "require('./package.json').version")
+          elif [ -f ".version" ]; then
+            echo "Using .version"
+            VERSION=$(cat .version | tr -d '[:space:]')
+          elif [ -f "pyproject.toml" ]; then
+            echo "Using pyproject.toml"
+            VERSION=$(grep '^version' pyproject.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          elif [ -f "mix.exs" ]; then
+            echo "Using mix.exs"
+            VERSION=$(grep 'version:' mix.exs | head -1 | sed 's/.*version: "\(.*\)".*/\1/')
+          else
+            echo "No version file found"
+            exit 1
+          fi
+          echo "version=v${VERSION}" >> $GITHUB_OUTPUT
+          echo "Detected version: v${VERSION}"
+
+      - name: Check if tag already exists
+        id: tag_check
+        run: |
+          if git rev-parse "${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get release notes
+        id: release_notes
+        run: |
+          if [ -f "CHANGELOG.md" ]; then
+            echo "Using CHANGELOG.md"
+            # Extract section for current version if it exists
+            VERSION="${{ steps.version.outputs.version }}"
+            NOTES=$(awk "/^## \[?${VERSION//v/}\]?/{flag=1; next} /^## /{flag=0} flag" CHANGELOG.md)
+            if [ -z "$NOTES" ]; then
+              # Fall back to full changelog if version section not found
+              NOTES=$(cat CHANGELOG.md)
+            fi
+          else
+            echo "No CHANGELOG.md found, using commit messages"
+            NOTES=$(git log ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --pretty=format:"- %s" --no-merges)
+          fi
+          # Write to file to handle multiline
+          echo "$NOTES" > release_notes.txt
+
+      - name: Create tag
+        if: steps.tag_check.outputs.exists == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.version.outputs.version }}
+          git push origin ${{ steps.version.outputs.version }}
+
+      - name: Create GitHub release
+        if: steps.tag_check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ steps.version.outputs.version }} \
+            --title "Release ${{ steps.version.outputs.version }}" \
+            --notes-file release_notes.txt
