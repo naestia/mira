@@ -14,6 +14,8 @@ export async function GET() {
       totalTasks,
       totalGroups,
       totalIncidents,
+      totalProjects,
+      activeProjects,
       tasksByStatus,
       incidentsByStatus,
       incidentsBySeverity,
@@ -32,6 +34,10 @@ export async function GET() {
       prisma.group.count(),
       // Total incidents
       prisma.incident.count(),
+      // Total projects
+      prisma.project.count(),
+      // Active projects
+      prisma.project.count({ where: { status: "ACTIVE" } }),
       // Tasks by status
       prisma.task.groupBy({
         by: ["status"],
@@ -127,6 +133,8 @@ export async function GET() {
       totalTasks,
       totalGroups,
       totalIncidents,
+      totalProjects,
+      activeProjects,
       tasksByStatus: taskStatusCounts,
       incidentsByStatus: incidentStatusCounts,
       incidentsBySeverity: incidentSeverityCounts,

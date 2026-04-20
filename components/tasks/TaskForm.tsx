@@ -90,8 +90,8 @@ export function TaskForm({
       setValue("description", task.description || "")
       setValue("status", task.status)
       setValue("priority", task.priority)
-      setValue("groupId", task.groupId)
-      setSelectedGroupId(task.groupId)
+      setValue("groupId", task.groupId ?? "")
+      setSelectedGroupId(task.groupId ?? "")
       setSelectedTagIds(task.tags.map((t) => t.id))
       setDate(task.dueDate ? new Date(task.dueDate) : undefined)
     } else {

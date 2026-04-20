@@ -37,6 +37,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
       include: {
         _count: { select: { memberships: true, tasks: true } },
         creator: { select: { id: true, name: true, email: true } },
+        project: { select: { id: true, name: true } },
       },
     })
 
@@ -50,6 +51,8 @@ export async function GET(request: Request, { params }: { params: Params }) {
       taskCount: group._count.tasks,
       myPermissions: membership.permissions,
       isMember: true,
+      projectId: group.projectId,
+      project: group.project,
     })
   } catch (error) {
     console.error("Error fetching group:", error)
@@ -126,6 +129,14 @@ export async function DELETE(request: Request, { params }: { params: Params }) {
 
     if (!group) {
       return NextResponse.json({ error: "Group not found" }, { status: 404 })
+    }
+
+    // Check if group is owned by a project
+    if (group.projectId) {
+      return NextResponse.json(
+        { error: "This group is owned by a project and cannot be deleted" },
+        { status: 403 }
+      )
     }
 
     // Check if user is the creator or an admin

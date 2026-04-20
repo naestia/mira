@@ -10,24 +10,27 @@ datasource db {
 }
 
 model User {
-  id                 String            @id @default(cuid())
-  email              String            @unique
-  username           String?           @unique
-  name               String?
-  password           String
-  role               Role              @default(USER)
-  active             Boolean           @default(true)
-  mustChangePassword Boolean           @default(false)
-  protected          Boolean           @default(false)
-  deletedAt          DateTime?
-  createdAt          DateTime          @default(now())
-  tasks              Task[]
-  tags               Tag[]
-  createdGroups      Group[]           @relation("GroupCreator")
-  memberships        GroupMembership[]
-  joinRequests       JoinRequest[]
-  incidents          Incident[]
-  notifications      Notification[]
+  id                  String              @id @default(cuid())
+  email               String              @unique
+  username            String?             @unique
+  name                String?
+  password            String
+  role                Role                @default(USER)
+  active              Boolean             @default(true)
+  mustChangePassword  Boolean             @default(false)
+  protected           Boolean             @default(false)
+  userPermissions     Int                 @default(0)
+  deletedAt           DateTime?
+  createdAt           DateTime            @default(now())
+  tasks               Task[]
+  tags                Tag[]
+  createdGroups       Group[]             @relation("GroupCreator")
+  memberships         GroupMembership[]
+  joinRequests        JoinRequest[]
+  incidents           Incident[]
+  notifications       Notification[]
+  createdProjects     Project[]           @relation("ProjectCreator")
+  projectMemberships  ProjectMembership[]
 }
 
 model Task {
@@ -41,13 +44,16 @@ model Task {
   updatedAt   DateTime  @updatedAt
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  groupId     String
-  group       Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId     String?
+  group       Group?    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   subtasks    Subtask[]
   tags        Tag[]     @relation("TaskTags")
 
   @@index([userId])
   @@index([groupId])
+  @@index([projectId])
 }
 
 model Subtask {
@@ -91,6 +97,22 @@ enum Role {
   ADMIN
 }
 
+enum Visibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum ProjectRole {
+  MEMBER
+  MANAGER
+  OWNER
+}
+
 model AppSetting {
   id        String   @id @default(cuid())
   key       String   @unique
@@ -108,11 +130,48 @@ model Group {
   updatedAt    DateTime          @updatedAt
   createdBy    String
   creator      User              @relation("GroupCreator", fields: [createdBy], references: [id])
+  projectId    String?
+  project      Project?          @relation(fields: [projectId], references: [id])
   memberships  GroupMembership[]
   tasks        Task[]
   joinRequests JoinRequest[]
 
   @@index([createdBy, isPersonal])
+  @@index([projectId])
+}
+
+model Project {
+  id          String              @id @default(cuid())
+  name        String
+  description String?
+  overview    String?             @db.Text
+  visibility  Visibility          @default(PRIVATE)
+  status      ProjectStatus       @default(ACTIVE)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  archivedAt  DateTime?
+  createdBy   String
+  creator     User                @relation("ProjectCreator", fields: [createdBy], references: [id])
+  memberships ProjectMembership[]
+  groups      Group[]
+  tasks       Task[]
+
+  @@index([createdBy])
+  @@index([status])
+}
+
+model ProjectMembership {
+  id        String      @id @default(cuid())
+  userId    String
+  projectId String
+  role      ProjectRole @default(MEMBER)
+  joinedAt  DateTime    @default(now())
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+  @@index([userId])
+  @@index([projectId])
 }
 
 model GroupMembership {
