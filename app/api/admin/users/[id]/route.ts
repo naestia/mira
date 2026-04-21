@@ -23,6 +23,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
         role: true,
         active: true,
         protected: true,
+        userPermissions: true,
         createdAt: true,
         tasks: {
           select: {
@@ -79,6 +80,7 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
     }
 
     const { name, email, role, active } = result.data
+    const userPermissions = body.userPermissions as number | undefined
 
     // Prevent modifications to protected users
     if (user.protected) {
@@ -137,6 +139,7 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
         ...(email !== undefined && { email }),
         ...(role !== undefined && { role }),
         ...(active !== undefined && { active }),
+        ...(userPermissions !== undefined && { userPermissions }),
       },
       select: {
         id: true,
@@ -144,6 +147,7 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
         email: true,
         role: true,
         active: true,
+        userPermissions: true,
         createdAt: true,
       },
     })

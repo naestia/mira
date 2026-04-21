@@ -102,3 +102,27 @@ export const DEFAULT_MEMBER_PERMISSIONS = PermissionPresets.MEMBER // 23
  * Full permission value for group creators
  */
 export const FULL_PERMISSIONS = PermissionPresets.MANAGER // 127
+
+/**
+ * User-level permission bits (stored in User.userPermissions)
+ * These are global permissions that apply across the system, not per-group.
+ */
+export const UserPermissions = {
+  CREATE_PROJECT: 32, // User can create new projects
+} as const
+
+export type UserPermissionKey = keyof typeof UserPermissions
+
+/**
+ * Check if a user has a specific user-level permission
+ */
+export function hasUserPermission(userPermissions: number, requiredPermission: number): boolean {
+  return (userPermissions & requiredPermission) !== 0
+}
+
+/**
+ * User permission labels for display
+ */
+export const UserPermissionLabels: Record<UserPermissionKey, string> = {
+  CREATE_PROJECT: "Create projects",
+}
