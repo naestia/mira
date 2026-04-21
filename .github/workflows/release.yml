@@ -7,7 +7,6 @@ on:
 
 jobs:
   release:
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -54,18 +53,15 @@ jobs:
         run: |
           if [ -f "CHANGELOG.md" ]; then
             echo "Using CHANGELOG.md"
-            # Extract section for current version if it exists
             VERSION="${{ steps.version.outputs.version }}"
             NOTES=$(awk "/^## \[?${VERSION//v/}\]?/{flag=1; next} /^## /{flag=0} flag" CHANGELOG.md)
             if [ -z "$NOTES" ]; then
-              # Fall back to full changelog if version section not found
               NOTES=$(cat CHANGELOG.md)
             fi
           else
             echo "No CHANGELOG.md found, using commit messages"
-            NOTES=$(git log ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --pretty=format:"- %s" --no-merges)
+            NOTES=$(git log ${{ github.event.before }}..${{ github.event.after }} --pretty=format:"- %s" --no-merges)
           fi
-          # Write to file to handle multiline
           echo "$NOTES" > release_notes.txt
 
       - name: Create tag
