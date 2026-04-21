@@ -97,7 +97,13 @@ export function IncidentForm({ open, onOpenChange, onSubmit }: IncidentFormProps
               onValueChange={(value) => value && setValue("severity", value as IncidentCreateInput["severity"])}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select severity" />
+                <SelectValue>
+                  {severity === "LOW" && "Low"}
+                  {severity === "MEDIUM" && "Medium"}
+                  {severity === "HIGH" && "High"}
+                  {severity === "CRITICAL" && "Critical"}
+                  {!severity && "Select severity"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="LOW">Low</SelectItem>

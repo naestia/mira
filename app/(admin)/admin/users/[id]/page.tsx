@@ -17,10 +17,12 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select"
-import { ArrowLeft, Loader2, KeyRound, ShieldCheck } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { ArrowLeft, Loader2, KeyRound, ShieldCheck, FolderKanban } from "lucide-react"
 import { toast } from "sonner"
 import { Role, Status, Priority } from "@prisma/client"
 import Link from "next/link"
+import { hasUserPermission, UserPermissions } from "@/lib/permissions"
 
 interface UserTask {
   id: string
@@ -37,6 +39,7 @@ interface UserDetail {
   role: Role
   active: boolean
   protected: boolean
+  userPermissions: number
   createdAt: string
   tasks: UserTask[]
 }
@@ -134,6 +137,34 @@ export default function UserDetailPage() {
         }
       },
     })
+  }
+
+  const handleToggleCreateProject = async () => {
+    if (!user) return
+
+    const hasPermission = hasUserPermission(user.userPermissions, UserPermissions.CREATE_PROJECT)
+    const newPermissions = hasPermission
+      ? user.userPermissions & ~UserPermissions.CREATE_PROJECT
+      : user.userPermissions | UserPermissions.CREATE_PROJECT
+
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userPermissions: newPermissions }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error)
+      }
+
+      const updatedUser = await response.json()
+      setUser((prev) => prev ? { ...prev, userPermissions: updatedUser.userPermissions } : null)
+      toast.success(hasPermission ? "Create project permission removed" : "Create project permission granted")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update permission")
+    }
   }
 
   const handleToggleActive = () => {
@@ -271,6 +302,42 @@ export default function UserDetailPage() {
                 </p>
               )}
             </div>
+
+            {user.role !== "ADMIN" && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <FolderKanban className="h-4 w-4" />
+                      Create Projects
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      Allow this user to create new projects
+                    </p>
+                  </div>
+                  <Switch
+                    checked={hasUserPermission(user.userPermissions, UserPermissions.CREATE_PROJECT)}
+                    onCheckedChange={handleToggleCreateProject}
+                  />
+                </div>
+              </div>
+            )}
+            {user.role === "ADMIN" && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <FolderKanban className="h-4 w-4" />
+                      Create Projects
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      Admins can always create projects
+                    </p>
+                  </div>
+                  <Switch checked disabled />
+                </div>
+              </div>
+            )}
 
             {!isCurrentUser && (
               <>

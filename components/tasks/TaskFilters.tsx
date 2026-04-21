@@ -41,6 +41,35 @@ export function TaskFilters({
 }: TaskFiltersProps) {
   const hasFilters = search || status !== "all" || priority !== "all" || tagId !== "all"
 
+  const statusLabels: Record<string, string> = {
+    all: "All Status",
+    TODO: "To Do",
+    IN_PROGRESS: "In Progress",
+    DONE: "Done",
+  }
+
+  const priorityLabels: Record<string, string> = {
+    all: "All Priority",
+    LOW: "Low",
+    MEDIUM: "Medium",
+    HIGH: "High",
+    URGENT: "Urgent",
+  }
+
+  const sortLabels: Record<string, string> = {
+    "createdAt-desc": "Newest first",
+    "createdAt-asc": "Oldest first",
+    "dueDate-asc": "Due date (asc)",
+    "dueDate-desc": "Due date (desc)",
+    "priority-desc": "Priority (high)",
+    "priority-asc": "Priority (low)",
+  }
+
+  const getTagLabel = (id: string) => {
+    if (id === "all") return "All Tags"
+    return tags.find((t) => t.id === id)?.name || "Select tag"
+  }
+
   const clearFilters = () => {
     onSearchChange("")
     onStatusChange("all")
@@ -63,7 +92,7 @@ export function TaskFilters({
         <div className="flex flex-wrap gap-2">
           <Select value={status} onValueChange={(v) => v && onStatusChange(v)}>
             <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Status" />
+              <SelectValue>{statusLabels[status]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
@@ -75,7 +104,7 @@ export function TaskFilters({
 
           <Select value={priority} onValueChange={(v) => v && onPriorityChange(v)}>
             <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Priority" />
+              <SelectValue>{priorityLabels[priority]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Priority</SelectItem>
@@ -88,7 +117,7 @@ export function TaskFilters({
 
           <Select value={tagId} onValueChange={(v) => v && onTagChange(v)}>
             <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Tag" />
+              <SelectValue>{getTagLabel(tagId)}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Tags</SelectItem>
@@ -108,7 +137,7 @@ export function TaskFilters({
 
           <Select value={sortBy} onValueChange={(v) => v && onSortByChange(v)}>
             <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Sort by" />
+              <SelectValue>{sortLabels[sortBy]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="createdAt-desc">Newest first</SelectItem>

@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Users, CheckSquare, Clock } from "lucide-react"
+import { Users, CheckSquare, Clock, FolderKanban } from "lucide-react"
 
 interface GroupCardProps {
   group: {
@@ -16,6 +16,11 @@ interface GroupCardProps {
     isMember: boolean
     hasPendingRequest?: boolean
     myPermissions?: number
+    projectId?: string | null
+    project?: {
+      id: string
+      name: string
+    } | null
     creator?: {
       id: string
       name: string | null
@@ -47,9 +52,19 @@ export function GroupCard({ group, onJoinRequest, isRequesting }: GroupCardProps
               </CardDescription>
             )}
           </div>
-          {group.isMember && (
-            <Badge variant="secondary">Member</Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {group.project && (
+              <Link href={`/projects/${group.project.id}`}>
+                <Badge variant="outline" className="gap-1 hover:bg-accent">
+                  <FolderKanban className="h-3 w-3" />
+                  {group.project.name}
+                </Badge>
+              </Link>
+            )}
+            {group.isMember && (
+              <Badge variant="secondary">Member</Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>

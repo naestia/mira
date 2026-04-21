@@ -14,6 +14,7 @@ import {
   Users,
   AlertTriangle,
   ListTodo,
+  FolderKanban,
 } from "lucide-react"
 import { NotificationBell } from "@/components/incidents/NotificationBell"
 import { cn } from "@/lib/utils"
@@ -22,6 +23,7 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Tasks", href: "/tasks", icon: ListTodo },
   { name: "Groups", href: "/groups", icon: Users },
+  { name: "Projects", href: "/projects", icon: FolderKanban },
   { name: "Incidents", href: "/incidents", icon: AlertTriangle },
   { name: "Settings", href: "/settings", icon: Settings },
 ]

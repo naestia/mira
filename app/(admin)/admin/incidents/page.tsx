@@ -62,6 +62,21 @@ export default function AdminIncidentsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [severityFilter, setSeverityFilter] = useState("all")
 
+  const statusLabels: Record<string, string> = {
+    all: "All Status",
+    OPEN: "Open",
+    INVESTIGATING: "Investigating",
+    RESOLVED: "Resolved",
+  }
+
+  const severityLabels: Record<string, string> = {
+    all: "All Severities",
+    LOW: "Low",
+    MEDIUM: "Medium",
+    HIGH: "High",
+    CRITICAL: "Critical",
+  }
+
   const fetchIncidents = useCallback(async () => {
     try {
       const params = new URLSearchParams()
@@ -134,7 +149,7 @@ export default function AdminIncidentsPage() {
             </div>
             <Select value={statusFilter} onValueChange={(v) => v && setStatusFilter(v)}>
               <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Status" />
+                <SelectValue>{statusLabels[statusFilter]}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
@@ -145,7 +160,7 @@ export default function AdminIncidentsPage() {
             </Select>
             <Select value={severityFilter} onValueChange={(v) => v && setSeverityFilter(v)}>
               <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Severity" />
+                <SelectValue>{severityLabels[severityFilter]}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Severity</SelectItem>

@@ -5,7 +5,7 @@ import Link from "next/link"
 import { StatsCard } from "@/components/admin/StatsCard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Users, CheckSquare, Clock, TrendingUp, AlertTriangle, Shield } from "lucide-react"
+import { Users, CheckSquare, Clock, TrendingUp, AlertTriangle, Shield, FolderKanban } from "lucide-react"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
@@ -15,6 +15,8 @@ interface Stats {
   totalTasks: number
   totalGroups: number
   totalIncidents: number
+  totalProjects: number
+  activeProjects: number
   tasksByStatus: {
     TODO: number
     IN_PROGRESS: number
@@ -108,7 +110,7 @@ export default function AdminDashboardPage() {
         <p className="text-muted-foreground">Overview of your application</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatsCard
           title="Total Users"
           value={stats.totalUsers}
@@ -118,6 +120,11 @@ export default function AdminDashboardPage() {
           title="Total Tasks"
           value={stats.totalTasks}
           icon={CheckSquare}
+        />
+        <StatsCard
+          title="Total Projects"
+          value={stats.totalProjects}
+          icon={FolderKanban}
         />
         <StatsCard
           title="Total Incidents"

@@ -36,13 +36,33 @@ export async function GET(
       return NextResponse.json({ error: "Task not found" }, { status: 404 })
     }
 
-    // Check VIEW permission
-    const membership = await prisma.groupMembership.findUnique({
-      where: { userId_groupId: { userId: user.id, groupId: task.groupId } },
-    })
+    // Check VIEW permission - handle both group tasks and project tasks
+    if (task.groupId) {
+      const membership = await prisma.groupMembership.findUnique({
+        where: { userId_groupId: { userId: user.id, groupId: task.groupId } },
+      })
 
-    if (!membership || !hasPermission(membership.permissions, Permissions.VIEW)) {
-      return NextResponse.json({ error: "No permission to view this task" }, { status: 403 })
+      if (!membership || !hasPermission(membership.permissions, Permissions.VIEW)) {
+        return NextResponse.json({ error: "No permission to view this task" }, { status: 403 })
+      }
+    } else if (task.projectId) {
+      // Project-level task - check project membership or visibility
+      const project = await prisma.project.findUnique({
+        where: { id: task.projectId },
+        select: { visibility: true },
+      })
+      const projectMembership = await prisma.projectMembership.findUnique({
+        where: { userId_projectId: { userId: user.id, projectId: task.projectId } },
+      })
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { role: true },
+      })
+      const isAdmin = dbUser?.role === "ADMIN"
+
+      if (!projectMembership && project?.visibility !== "PUBLIC" && !isAdmin) {
+        return NextResponse.json({ error: "No permission to view this task" }, { status: 403 })
+      }
     }
 
     return NextResponse.json(task)
@@ -84,21 +104,46 @@ export async function PATCH(
       return NextResponse.json({ error: "Task not found" }, { status: 404 })
     }
 
-    // Check EDIT permission
-    const membership = await prisma.groupMembership.findUnique({
-      where: { userId_groupId: { userId: user.id, groupId: existingTask.groupId } },
-    })
-
-    if (!membership) {
-      return NextResponse.json({ error: "Not a member of this group" }, { status: 403 })
-    }
-
+    // Check EDIT permission - handle both group tasks and project tasks
     const isOwner = existingTask.userId === user.id
-    const canEditAny = hasPermission(membership.permissions, Permissions.EDIT_ANY)
-    const canEditOwn = isOwner && hasPermission(membership.permissions, Permissions.EDIT_OWN)
 
-    if (!canEditAny && !canEditOwn) {
-      return NextResponse.json({ error: "No permission to edit this task" }, { status: 403 })
+    if (existingTask.groupId) {
+      const membership = await prisma.groupMembership.findUnique({
+        where: { userId_groupId: { userId: user.id, groupId: existingTask.groupId } },
+      })
+
+      if (!membership) {
+        return NextResponse.json({ error: "Not a member of this group" }, { status: 403 })
+      }
+
+      const canEditAny = hasPermission(membership.permissions, Permissions.EDIT_ANY)
+      const canEditOwn = isOwner && hasPermission(membership.permissions, Permissions.EDIT_OWN)
+
+      if (!canEditAny && !canEditOwn) {
+        return NextResponse.json({ error: "No permission to edit this task" }, { status: 403 })
+      }
+    } else if (existingTask.projectId) {
+      // Project-level task - check project membership
+      const project = await prisma.project.findUnique({
+        where: { id: existingTask.projectId },
+        select: { status: true },
+      })
+      const projectMembership = await prisma.projectMembership.findUnique({
+        where: { userId_projectId: { userId: user.id, projectId: existingTask.projectId } },
+      })
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { role: true },
+      })
+      const isAdmin = dbUser?.role === "ADMIN"
+
+      if (!projectMembership && !isAdmin) {
+        return NextResponse.json({ error: "No permission to edit this task" }, { status: 403 })
+      }
+
+      if (project?.status === "ARCHIVED") {
+        return NextResponse.json({ error: "Cannot modify tasks in an archived project" }, { status: 403 })
+      }
     }
 
     const { title, description, status, priority, dueDate, tagIds, subtasks } =
@@ -166,21 +211,46 @@ export async function DELETE(
       return NextResponse.json({ error: "Task not found" }, { status: 404 })
     }
 
-    // Check DELETE permission
-    const membership = await prisma.groupMembership.findUnique({
-      where: { userId_groupId: { userId: user.id, groupId: existingTask.groupId } },
-    })
-
-    if (!membership) {
-      return NextResponse.json({ error: "Not a member of this group" }, { status: 403 })
-    }
-
+    // Check DELETE permission - handle both group tasks and project tasks
     const isOwner = existingTask.userId === user.id
-    const canDeleteAny = hasPermission(membership.permissions, Permissions.DELETE_ANY)
-    const canDeleteOwn = isOwner && hasPermission(membership.permissions, Permissions.DELETE_OWN)
 
-    if (!canDeleteAny && !canDeleteOwn) {
-      return NextResponse.json({ error: "No permission to delete this task" }, { status: 403 })
+    if (existingTask.groupId) {
+      const membership = await prisma.groupMembership.findUnique({
+        where: { userId_groupId: { userId: user.id, groupId: existingTask.groupId } },
+      })
+
+      if (!membership) {
+        return NextResponse.json({ error: "Not a member of this group" }, { status: 403 })
+      }
+
+      const canDeleteAny = hasPermission(membership.permissions, Permissions.DELETE_ANY)
+      const canDeleteOwn = isOwner && hasPermission(membership.permissions, Permissions.DELETE_OWN)
+
+      if (!canDeleteAny && !canDeleteOwn) {
+        return NextResponse.json({ error: "No permission to delete this task" }, { status: 403 })
+      }
+    } else if (existingTask.projectId) {
+      // Project-level task - check project membership
+      const project = await prisma.project.findUnique({
+        where: { id: existingTask.projectId },
+        select: { status: true },
+      })
+      const projectMembership = await prisma.projectMembership.findUnique({
+        where: { userId_projectId: { userId: user.id, projectId: existingTask.projectId } },
+      })
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { role: true },
+      })
+      const isAdmin = dbUser?.role === "ADMIN"
+
+      if (!projectMembership && !isAdmin) {
+        return NextResponse.json({ error: "No permission to delete this task" }, { status: 403 })
+      }
+
+      if (project?.status === "ARCHIVED") {
+        return NextResponse.json({ error: "Cannot delete tasks in an archived project" }, { status: 403 })
+      }
     }
 
     await prisma.task.delete({

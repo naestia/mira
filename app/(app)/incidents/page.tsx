@@ -61,6 +61,14 @@ export default function IncidentsPage() {
     fetchIncidents()
   }, [fetchIncidents])
 
+  const severityLabels: Record<string, string> = {
+    all: "All Severities",
+    LOW: "Low",
+    MEDIUM: "Medium",
+    HIGH: "High",
+    CRITICAL: "Critical",
+  }
+
   const handleCreateIncident = async (data: { title: string; description?: string; severity?: string }) => {
     const response = await fetch("/api/incidents", {
       method: "POST",
@@ -138,7 +146,7 @@ export default function IncidentsPage() {
         </div>
         <Select value={severityFilter} onValueChange={(value) => value && setSeverityFilter(value)}>
           <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Severity" />
+            <SelectValue>{severityLabels[severityFilter]}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Severities</SelectItem>

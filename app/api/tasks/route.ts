@@ -23,6 +23,7 @@ export async function GET(request: Request) {
     const sortBy = searchParams.get("sortBy") || "createdAt"
     const sortOrder = searchParams.get("sortOrder") || "desc"
     const groupId = searchParams.get("groupId")
+    const projectId = searchParams.get("projectId")
 
     // Get all groups the user is a member of with VIEW permission
     const memberships = await prisma.groupMembership.findMany({
@@ -34,14 +35,44 @@ export async function GET(request: Request) {
       .filter((m) => hasPermission(m.permissions, Permissions.VIEW))
       .map((m) => m.groupId)
 
-    if (viewableGroupIds.length === 0) {
-      return NextResponse.json([])
-    }
+    // Get all projects the user is a member of
+    const projectMemberships = await prisma.projectMembership.findMany({
+      where: { userId: user.id },
+      select: { projectId: true },
+    })
+    const memberProjectIds = projectMemberships.map((m) => m.projectId)
 
-    const where: Record<string, unknown> = {
-      groupId: groupId && viewableGroupIds.includes(groupId)
-        ? groupId
-        : { in: viewableGroupIds },
+    // Also get public projects for viewing
+    const publicProjects = await prisma.project.findMany({
+      where: { visibility: "PUBLIC" },
+      select: { id: true },
+    })
+    const viewableProjectIds = [...new Set([
+      ...memberProjectIds,
+      ...publicProjects.map((p) => p.id),
+    ])]
+
+    // Build where clause
+    const where: Record<string, unknown> = {}
+
+    // Filter by project if specified
+    if (projectId) {
+      if (!viewableProjectIds.includes(projectId)) {
+        return NextResponse.json([])
+      }
+      where.projectId = projectId
+      where.groupId = null // Only project-level tasks
+    } else if (groupId) {
+      // Filter by specific group
+      if (!viewableGroupIds.includes(groupId)) {
+        return NextResponse.json([])
+      }
+      where.groupId = groupId
+    } else {
+      // Default: all tasks from viewable groups only
+      // Project-level tasks (groupId: null, projectId: not null) are excluded
+      // and should only appear in the project's Tasks tab
+      where.groupId = { in: viewableGroupIds }
     }
 
     if (status) {
@@ -59,10 +90,17 @@ export async function GET(request: Request) {
     }
 
     if (search) {
-      where.OR = [
+      const searchCondition = [
         { title: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
       ]
+      // Merge search with existing OR if present
+      if (where.OR) {
+        where.AND = [{ OR: where.OR }, { OR: searchCondition }]
+        delete where.OR
+      } else {
+        where.OR = searchCondition
+      }
     }
 
     const tasks = await prisma.task.findMany({
@@ -73,6 +111,9 @@ export async function GET(request: Request) {
         },
         tags: true,
         group: {
+          select: { id: true, name: true },
+        },
+        project: {
           select: { id: true, name: true },
         },
         user: {

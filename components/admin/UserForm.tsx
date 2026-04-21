@@ -130,7 +130,7 @@ export function UserForm({ open, onOpenChange, onSubmit }: UserFormProps) {
             <Label htmlFor="role">Role</Label>
             <Select value={role} onValueChange={(value) => setValue("role", value as Role)}>
               <SelectTrigger>
-                <SelectValue placeholder="Select role" />
+                <SelectValue>{role === "ADMIN" ? "Admin" : "User"}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="USER">User</SelectItem>
