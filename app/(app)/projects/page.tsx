@@ -130,6 +130,18 @@ export default function ProjectsPage() {
   const activeProjects = projects.filter((p) => p.status === "ACTIVE")
   const archivedProjects = projects.filter((p) => p.status === "ARCHIVED")
 
+  const statusLabels: Record<string, string> = {
+    all: "All Status",
+    ACTIVE: "Active",
+    ARCHIVED: "Archived",
+  }
+
+  const visibilityLabels: Record<string, string> = {
+    all: "All Visibility",
+    PUBLIC: "Public",
+    PRIVATE: "Private",
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -167,7 +179,7 @@ export default function ProjectsPage() {
         </div>
         <Select value={statusFilter} onValueChange={(v) => v && setStatusFilter(v)}>
           <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Status" />
+            <SelectValue>{statusLabels[statusFilter]}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
@@ -177,7 +189,7 @@ export default function ProjectsPage() {
         </Select>
         <Select value={visibilityFilter} onValueChange={(v) => v && setVisibilityFilter(v)}>
           <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Visibility" />
+            <SelectValue>{visibilityLabels[visibilityFilter]}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Visibility</SelectItem>

@@ -171,7 +171,7 @@ export function TaskForm({
             )}
           </div>
 
-          {!task && (
+          {!task && groups && groups.length > 0 && (
             <div className="space-y-2">
               <Label>Group</Label>
               <Select
@@ -187,11 +187,15 @@ export function TaskForm({
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Personal" />
+                  <SelectValue>
+                    {selectedGroupId
+                      ? groups.find((g) => g.id === selectedGroupId)?.name || "Select group"
+                      : "Personal"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="personal">Personal</SelectItem>
-                  {groups?.map((group) => (
+                  {groups.map((group) => (
                     <SelectItem key={group.id} value={group.id}>
                       {group.name}
                     </SelectItem>
@@ -221,7 +225,11 @@ export function TaskForm({
                 }
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue>
+                    {watch("status") === "TODO" && "To Do"}
+                    {watch("status") === "IN_PROGRESS" && "In Progress"}
+                    {watch("status") === "DONE" && "Done"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="TODO">To Do</SelectItem>
@@ -243,7 +251,12 @@ export function TaskForm({
                 }
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue>
+                    {watch("priority") === "LOW" && "Low"}
+                    {watch("priority") === "MEDIUM" && "Medium"}
+                    {watch("priority") === "HIGH" && "High"}
+                    {watch("priority") === "URGENT" && "Urgent"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="LOW">Low</SelectItem>

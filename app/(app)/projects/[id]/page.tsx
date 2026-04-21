@@ -9,8 +9,12 @@ import { ProjectHeader } from "@/components/projects/ProjectHeader"
 import { ProjectOverview } from "@/components/projects/ProjectOverview"
 import { ProjectGroupList } from "@/components/projects/ProjectGroupList"
 import { ProjectMemberList } from "@/components/projects/ProjectMemberList"
-import { Loader2, ArrowLeft, FolderKanban, Users, FileText, CheckSquare } from "lucide-react"
+import { TaskList } from "@/components/tasks/TaskList"
+import { TaskForm } from "@/components/tasks/TaskForm"
+import { Loader2, ArrowLeft, FolderKanban, Users, FileText, CheckSquare, Plus, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
+import { TaskWithRelations, Tag, Status } from "@/types"
+import { TaskInput } from "@/lib/validations"
 
 interface Project {
   id: string
@@ -71,9 +75,13 @@ export default function ProjectPage() {
   const [project, setProject] = useState<Project | null>(null)
   const [groups, setGroups] = useState<Group[]>([])
   const [members, setMembers] = useState<Member[]>([])
+  const [tasks, setTasks] = useState<TaskWithRelations[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<Tab>("overview")
   const [isEditing, setIsEditing] = useState(false)
+  const [isTaskFormOpen, setIsTaskFormOpen] = useState(false)
+  const [editingTask, setEditingTask] = useState<TaskWithRelations | null>(null)
 
   const isAdmin = session?.user?.role === "ADMIN"
   const myRole = project?.myRole
@@ -121,11 +129,35 @@ export default function ProjectPage() {
     }
   }, [projectId])
 
+  const fetchTasks = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/tasks`)
+      if (!response.ok) throw new Error("Failed to fetch tasks")
+      const data = await response.json()
+      setTasks(data)
+    } catch {
+      // Silently fail - tasks will be empty
+    }
+  }, [projectId])
+
+  const fetchTags = useCallback(async () => {
+    try {
+      const response = await fetch("/api/tags")
+      if (!response.ok) throw new Error("Failed to fetch tags")
+      const data = await response.json()
+      setTags(data)
+    } catch {
+      // Tags are optional
+    }
+  }, [])
+
   useEffect(() => {
     fetchProject()
     fetchGroups()
     fetchMembers()
-  }, [fetchProject, fetchGroups, fetchMembers])
+    fetchTasks()
+    fetchTags()
+  }, [fetchProject, fetchGroups, fetchMembers, fetchTasks, fetchTags])
 
   const handleArchiveToggle = async () => {
     if (!project) return
@@ -162,6 +194,165 @@ export default function ProjectPage() {
     fetchProject()
   }
 
+  const handleCreateTask = async (data: TaskInput) => {
+    const response = await fetch(`/api/projects/${projectId}/tasks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: data.title,
+        description: data.description,
+        priority: data.priority,
+        dueDate: data.dueDate,
+        tagIds: data.tagIds,
+      }),
+    })
+    if (!response.ok) {
+      const error = await response.json()
+      toast.error(error.error || "Failed to create task")
+      throw new Error(error.error)
+    }
+    const newTask = await response.json()
+    setTasks((prev) => [newTask, ...prev])
+    toast.success("Task created")
+  }
+
+  const handleUpdateTask = async (data: TaskInput) => {
+    if (!editingTask) return
+    const response = await fetch(`/api/tasks/${editingTask.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    })
+    if (!response.ok) {
+      const error = await response.json()
+      toast.error(error.error || "Failed to update task")
+      throw new Error(error.error)
+    }
+    const updatedTask = await response.json()
+    setTasks((prev) =>
+      prev.map((t) => (t.id === updatedTask.id ? updatedTask : t))
+    )
+    setEditingTask(null)
+    toast.success("Task updated")
+  }
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (isArchived) {
+      toast.error("Cannot modify tasks in an archived project")
+      return
+    }
+    const response = await fetch(`/api/tasks/${taskId}`, {
+      method: "DELETE",
+    })
+    if (!response.ok) {
+      const error = await response.json()
+      toast.error(error.error || "Failed to delete task")
+      return
+    }
+    setTasks((prev) => prev.filter((t) => t.id !== taskId))
+    toast.success("Task deleted")
+  }
+
+  const handleStatusChange = async (taskId: string, newStatus: Status) => {
+    if (isArchived) {
+      toast.error("Cannot modify tasks in an archived project")
+      return
+    }
+    const response = await fetch(`/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus }),
+    })
+    if (!response.ok) {
+      toast.error("Failed to update task")
+      return
+    }
+    const updatedTask = await response.json()
+    setTasks((prev) =>
+      prev.map((t) => (t.id === updatedTask.id ? updatedTask : t))
+    )
+  }
+
+  const handleSubtaskToggle = async (subtaskId: string, done: boolean) => {
+    if (isArchived) {
+      toast.error("Cannot modify tasks in an archived project")
+      return
+    }
+    const response = await fetch(`/api/subtasks/${subtaskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ done }),
+    })
+    if (!response.ok) {
+      toast.error("Failed to update subtask")
+      return
+    }
+    await fetchTasks()
+  }
+
+  const handleSubtaskAdd = async (taskId: string, title: string) => {
+    if (isArchived) {
+      toast.error("Cannot modify tasks in an archived project")
+      return
+    }
+    const response = await fetch(`/api/tasks/${taskId}/subtasks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title }),
+    })
+    if (!response.ok) {
+      toast.error("Failed to add subtask")
+      return
+    }
+    await fetchTasks()
+    toast.success("Subtask added")
+  }
+
+  const handleSubtaskDelete = async (subtaskId: string) => {
+    if (isArchived) {
+      toast.error("Cannot modify tasks in an archived project")
+      return
+    }
+    const response = await fetch(`/api/subtasks/${subtaskId}`, {
+      method: "DELETE",
+    })
+    if (!response.ok) {
+      toast.error("Failed to delete subtask")
+      return
+    }
+    await fetchTasks()
+    toast.success("Subtask deleted")
+  }
+
+  const handleCreateTag = async (name: string, color: string) => {
+    const response = await fetch("/api/tags", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, color }),
+    })
+    if (!response.ok) {
+      toast.error("Failed to create tag")
+      return
+    }
+    const newTag = await response.json()
+    setTags((prev) => [...prev, newTag])
+    toast.success("Tag created")
+  }
+
+  const handleEditTask = (task: TaskWithRelations) => {
+    if (isArchived) {
+      toast.error("Cannot modify tasks in an archived project")
+      return
+    }
+    setEditingTask(task)
+    setIsTaskFormOpen(true)
+  }
+
+  const handleTaskFormClose = (open: boolean) => {
+    setIsTaskFormOpen(open)
+    if (!open) setEditingTask(null)
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -178,8 +369,10 @@ export default function ProjectPage() {
     { id: "overview" as Tab, label: "Overview", icon: FileText },
     { id: "groups" as Tab, label: "Groups", icon: FolderKanban, count: groups.length },
     { id: "members" as Tab, label: "Members", icon: Users, count: members.length },
-    { id: "tasks" as Tab, label: "Tasks", icon: CheckSquare, count: project.taskCount },
+    { id: "tasks" as Tab, label: "Tasks", icon: CheckSquare, count: tasks.length },
   ]
+
+  const canCreateTask = (project.isMember || isAdmin) && !isArchived
 
   return (
     <div className="p-6 space-y-6">
@@ -261,19 +454,50 @@ export default function ProjectPage() {
         )}
 
         {activeTab === "tasks" && (
-          <div className="text-center py-8">
-            <CheckSquare className="mx-auto h-12 w-12 text-muted-foreground/50" />
-            <h3 className="mt-4 text-lg font-medium">Project Tasks</h3>
-            <p className="mt-2 text-muted-foreground">
-              View and manage project-level tasks
-            </p>
-            <Button
-              className="mt-4"
-              nativeButton={false}
-              render={<Link href={`/projects/${projectId}/tasks`} />}
-            >
-              Go to Tasks
-            </Button>
+          <div className="space-y-4">
+            {isArchived && (
+              <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 p-4 text-yellow-600 dark:text-yellow-400">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5" />
+                  <span className="font-medium">This project is archived</span>
+                </div>
+                <p className="mt-1 text-sm opacity-80">
+                  Tasks are read-only. No modifications allowed.
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Project Tasks</h2>
+              {canCreateTask && (
+                <Button onClick={() => setIsTaskFormOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Task
+                </Button>
+              )}
+            </div>
+
+            <TaskList
+              tasks={tasks}
+              onEdit={handleEditTask}
+              onDelete={handleDeleteTask}
+              onStatusChange={handleStatusChange}
+              onSubtaskToggle={handleSubtaskToggle}
+              onSubtaskAdd={handleSubtaskAdd}
+              onSubtaskDelete={handleSubtaskDelete}
+            />
+
+            {!isArchived && (
+              <TaskForm
+                open={isTaskFormOpen}
+                onOpenChange={handleTaskFormClose}
+                task={editingTask}
+                tags={tags}
+                groups={[]}
+                onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
+                onCreateTag={handleCreateTag}
+              />
+            )}
           </div>
         )}
       </div>

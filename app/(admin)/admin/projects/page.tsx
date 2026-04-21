@@ -43,6 +43,12 @@ export default function AdminProjectsPage() {
   const [archiveTarget, setArchiveTarget] = useState<Project | null>(null)
   const [isArchiving, setIsArchiving] = useState(false)
 
+  const statusLabels: Record<string, string> = {
+    all: "All Status",
+    ACTIVE: "Active",
+    ARCHIVED: "Archived",
+  }
+
   const fetchProjects = useCallback(async () => {
     try {
       const params = new URLSearchParams()
@@ -132,7 +138,7 @@ export default function AdminProjectsPage() {
         </div>
         <Select value={statusFilter} onValueChange={(v) => v && setStatusFilter(v)}>
           <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="All Status" />
+            <SelectValue>{statusLabels[statusFilter]}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>

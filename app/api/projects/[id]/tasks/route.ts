@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma"
 import { getCurrentUser } from "@/lib/session"
 import { z } from "zod"
 
+// Disable caching for this dynamic route
+export const dynamic = "force-dynamic"
+
 type Params = Promise<{ id: string }>
 
 const createTaskSchema = z.object({
@@ -58,9 +61,11 @@ export async function GET(request: Request, { params }: { params: Params }) {
     const priority = searchParams.get("priority")
     const search = searchParams.get("search")
 
+    // Query tasks that belong to this project
+    // Project-level tasks have groupId = null, but we also include tasks
+    // in groups that belong to this project for visibility
     const where: Record<string, unknown> = {
       projectId: id,
-      groupId: null, // Only project-level tasks
     }
 
     if (status) {
@@ -84,6 +89,8 @@ export async function GET(request: Request, { params }: { params: Params }) {
         user: { select: { id: true, name: true, email: true } },
         subtasks: true,
         tags: true,
+        project: { select: { id: true, name: true } },
+        group: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: "desc" },
     })
@@ -151,9 +158,12 @@ export async function POST(request: Request, { params }: { params: Params }) {
         description,
         priority,
         dueDate: dueDate ? new Date(dueDate) : null,
-        projectId: id,
-        groupId: null,
-        userId: user.id,
+        project: {
+          connect: { id },
+        },
+        user: {
+          connect: { id: user.id },
+        },
         ...(tagIds?.length && {
           tags: {
             connect: tagIds.map((tagId) => ({ id: tagId })),
@@ -164,6 +174,7 @@ export async function POST(request: Request, { params }: { params: Params }) {
         user: { select: { id: true, name: true, email: true } },
         subtasks: true,
         tags: true,
+        project: { select: { id: true, name: true } },
       },
     })
 

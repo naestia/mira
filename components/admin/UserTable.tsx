@@ -54,6 +54,12 @@ export function UserTable({
   onDelete,
   currentUserId,
 }: UserTableProps) {
+  const roleLabels: Record<string, string> = {
+    all: "All roles",
+    USER: "User",
+    ADMIN: "Admin",
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex gap-4">
@@ -68,7 +74,7 @@ export function UserTable({
         </div>
         <Select value={roleFilter} onValueChange={(value) => value && onRoleFilterChange(value)}>
           <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="All roles" />
+            <SelectValue>{roleLabels[roleFilter]}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All roles</SelectItem>

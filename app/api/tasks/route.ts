@@ -69,11 +69,10 @@ export async function GET(request: Request) {
       }
       where.groupId = groupId
     } else {
-      // Default: all tasks from viewable groups and project-level tasks
-      where.OR = [
-        { groupId: { in: viewableGroupIds } },
-        { projectId: { in: viewableProjectIds }, groupId: null },
-      ]
+      // Default: all tasks from viewable groups only
+      // Project-level tasks (groupId: null, projectId: not null) are excluded
+      // and should only appear in the project's Tasks tab
+      where.groupId = { in: viewableGroupIds }
     }
 
     if (status) {
