@@ -51,7 +51,7 @@ export default function AdminUsersPage() {
     name: string
     email: string
     password: string
-    role: "USER" | "ADMIN"
+    role: "USER" | "ADMIN" | "REPORTER"
   }) => {
     const response = await fetch("/api/admin/users", {
       method: "POST",

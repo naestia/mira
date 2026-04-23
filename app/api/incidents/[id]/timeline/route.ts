@@ -13,6 +13,11 @@ export async function POST(request: Request, { params }: { params: Params }) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Reporters cannot add notes to incidents
+    if (session.user.role === "REPORTER") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
     const { id } = await params
     const body = await request.json()
     const validatedData = timelineNoteSchema.parse(body)

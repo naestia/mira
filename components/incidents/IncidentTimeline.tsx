@@ -9,6 +9,7 @@ import {
   MessageSquare,
   Plus,
   TrendingUp,
+  UserPlus,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -39,6 +40,10 @@ const eventConfig: Record<EventType, { icon: React.ElementType; color: string }>
   NOTE_ADDED: {
     icon: MessageSquare,
     color: "text-gray-500 bg-gray-100 dark:bg-gray-800",
+  },
+  ASSIGNED: {
+    icon: UserPlus,
+    color: "text-indigo-500 bg-indigo-100 dark:bg-indigo-900/30",
   },
   RESOLVED: {
     icon: Check,

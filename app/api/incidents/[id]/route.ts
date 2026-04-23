@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { incidentUpdateSchema } from "@/lib/validations"
-import { notifyStatusChange, notifyIncidentResolved } from "@/lib/notifications"
+import { notifyStatusChange, notifyIncidentResolved, notifyIncidentAssigned } from "@/lib/notifications"
 import { IncidentStatus } from "@prisma/client"
 
 type Params = Promise<{ id: string }>
@@ -22,6 +22,11 @@ export async function GET(request: Request, { params }: { params: Params }) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Reporters must use /api/reporter/incidents
+    if (session.user.role === "REPORTER") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
     const { id } = await params
     const isAdmin = session.user.role === "ADMIN"
 
@@ -36,6 +41,9 @@ export async function GET(request: Request, { params }: { params: Params }) {
           orderBy: { createdAt: "asc" },
         },
         user: {
+          select: { id: true, name: true, email: true },
+        },
+        assignee: {
           select: { id: true, name: true, email: true },
         },
       },
@@ -60,6 +68,11 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Reporters cannot modify incidents
+    if (session.user.role === "REPORTER") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     const { id } = await params
@@ -125,13 +138,50 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
       updateData.description = validatedData.description
     }
 
+    // Handle assignee change
+    let newAssigneeName: string | null = null
+    if (validatedData.assigneeId !== undefined && validatedData.assigneeId !== existingIncident.assigneeId) {
+      updateData.assigneeId = validatedData.assigneeId
+
+      if (validatedData.assigneeId) {
+        // Verify assignee exists and is an admin or user (not reporter)
+        const assignee = await prisma.user.findFirst({
+          where: {
+            id: validatedData.assigneeId,
+            role: { in: ["ADMIN", "USER"] },
+            active: true,
+            deletedAt: null,
+          },
+          select: { id: true, name: true, email: true },
+        })
+
+        if (!assignee) {
+          return NextResponse.json(
+            { error: "Invalid assignee" },
+            { status: 400 }
+          )
+        }
+
+        newAssigneeName = assignee.name || assignee.email
+        timelineEvents.push({
+          type: "ASSIGNED",
+          message: `Assigned to ${newAssigneeName}`,
+        })
+      } else {
+        timelineEvents.push({
+          type: "ASSIGNED",
+          message: "Unassigned",
+        })
+      }
+    }
+
     const incident = await prisma.incident.update({
       where: { id },
       data: {
         ...updateData,
         timeline: timelineEvents.length > 0 ? {
           create: timelineEvents.map(e => ({
-            type: e.type as "STATUS_CHANGED" | "SEVERITY_CHANGED" | "RESOLVED",
+            type: e.type as "STATUS_CHANGED" | "SEVERITY_CHANGED" | "ASSIGNED" | "RESOLVED",
             message: e.message,
           })),
         } : undefined,
@@ -139,6 +189,9 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
       include: {
         timeline: {
           orderBy: { createdAt: "asc" },
+        },
+        assignee: {
+          select: { id: true, name: true, email: true },
         },
       },
     })
@@ -156,6 +209,15 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
           validatedData.status
         )
       }
+    }
+
+    // Send notification for assignment
+    if (validatedData.assigneeId && validatedData.assigneeId !== existingIncident.assigneeId) {
+      await notifyIncidentAssigned(
+        incident.id,
+        validatedData.assigneeId,
+        incident.title
+      )
     }
 
     return NextResponse.json(incident)
@@ -176,6 +238,11 @@ export async function DELETE(request: Request, { params }: { params: Params }) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Reporters cannot delete incidents
+    if (session.user.role === "REPORTER") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     const { id } = await params
