@@ -44,13 +44,13 @@ export const adminUserCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(["USER", "ADMIN"]).optional(),
+  role: z.enum(["USER", "ADMIN", "REPORTER"]).optional(),
 })
 
 export const adminUserUpdateSchema = z.object({
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
-  role: z.enum(["USER", "ADMIN"]).optional(),
+  role: z.enum(["USER", "ADMIN", "REPORTER"]).optional(),
   active: z.boolean().optional(),
 })
 
@@ -71,6 +71,7 @@ export const incidentUpdateSchema = z.object({
   description: z.string().max(5000).optional().nullable(),
   severity: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
   status: z.enum(["OPEN", "INVESTIGATING", "RESOLVED"]).optional(),
+  assigneeId: z.string().nullable().optional(),
 })
 
 export const timelineNoteSchema = z.object({

@@ -62,3 +62,15 @@ export async function notifyIncidentResolved(
     message: `Incident "${title}" has been resolved`,
   })
 }
+
+export async function notifyIncidentAssigned(
+  incidentId: string,
+  assigneeId: string,
+  title: string
+) {
+  await createNotification({
+    incidentId,
+    userId: assigneeId,
+    message: `You have been assigned to incident: "${title}"`,
+  })
+}

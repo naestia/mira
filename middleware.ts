@@ -16,6 +16,16 @@ export default withAuth(
       return NextResponse.redirect(new URL("/dashboard", req.url))
     }
 
+    // Reporters are hard-locked to /reporter routes
+    if (token?.role === "REPORTER" && !pathname.startsWith("/reporter")) {
+      return NextResponse.redirect(new URL("/reporter", req.url))
+    }
+
+    // Non-reporters cannot access /reporter routes
+    if (pathname.startsWith("/reporter") && token?.role !== "REPORTER") {
+      return NextResponse.redirect(new URL("/dashboard", req.url))
+    }
+
     // Protect admin routes
     if (pathname.startsWith("/admin")) {
       if (!token || token.role !== "ADMIN") {
@@ -36,5 +46,5 @@ export default withAuth(
 )
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/settings/:path*", "/admin/:path*", "/change-password"],
+  matcher: ["/dashboard/:path*", "/settings/:path*", "/admin/:path*", "/change-password", "/reporter", "/reporter/:path*"],
 }
