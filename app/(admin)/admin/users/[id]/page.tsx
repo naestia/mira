@@ -95,21 +95,41 @@ export default function UserDetailPage() {
     fetchUser()
   }, [userId, router])
 
+  const getRoleChangeMessage = (fromRole: Role, toRole: Role) => {
+    const messages: Record<Role, Record<Role, { title: string; description: string }>> = {
+      USER: {
+        ADMIN: { title: "Promote to Admin", description: "This user will have full admin access." },
+        USER: { title: "", description: "" },
+        REPORTER: { title: "Change to Reporter", description: "This user will only be able to submit and view their own incidents." },
+      },
+      ADMIN: {
+        USER: { title: "Demote to User", description: "This user will lose admin access." },
+        ADMIN: { title: "", description: "" },
+        REPORTER: { title: "Change to Reporter", description: "This user will lose admin access and only be able to submit incidents." },
+      },
+      REPORTER: {
+        USER: { title: "Promote to User", description: "This user will gain access to tasks and groups." },
+        ADMIN: { title: "Promote to Admin", description: "This user will have full admin access." },
+        REPORTER: { title: "", description: "" },
+      },
+    }
+    return messages[fromRole][toRole]
+  }
+
   const handleRoleChange = async (newRole: Role) => {
     if (!user) return
 
-    if (isCurrentUser && newRole === "USER") {
+    if (isCurrentUser && newRole !== "ADMIN") {
       toast.error("You cannot demote yourself")
       return
     }
 
+    const { title, description } = getRoleChangeMessage(user.role, newRole)
+
     setConfirmDialog({
       open: true,
-      title: newRole === "ADMIN" ? "Promote to Admin" : "Demote to User",
-      description:
-        newRole === "ADMIN"
-          ? "This user will have full admin access."
-          : "This user will lose admin access.",
+      title,
+      description,
       confirmLabel: "Confirm",
       variant: "default",
       onConfirm: async () => {
@@ -289,6 +309,7 @@ export default function UserDetailPage() {
                 <SelectContent>
                   <SelectItem value="USER">User</SelectItem>
                   <SelectItem value="ADMIN">Admin</SelectItem>
+                  <SelectItem value="REPORTER">Reporter</SelectItem>
                 </SelectContent>
               </Select>
               {isCurrentUser && (

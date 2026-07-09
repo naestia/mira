@@ -34,12 +34,25 @@ interface Incident {
   createdAt: string
   updatedAt: string
   resolvedAt: string | null
+  assigneeId: string | null
   user: {
     id: string
     name: string | null
     email: string
+    role: "USER" | "ADMIN" | "REPORTER"
   }
+  assignee: {
+    id: string
+    name: string | null
+    email: string
+  } | null
   timelineCount: number
+}
+
+interface AssignableUser {
+  id: string
+  name: string | null
+  email: string
 }
 
 const severityColors = {
@@ -57,6 +70,7 @@ const statusColors = {
 
 export default function AdminIncidentsPage() {
   const [incidents, setIncidents] = useState<Incident[]>([])
+  const [assignableUsers, setAssignableUsers] = useState<AssignableUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -101,6 +115,52 @@ export default function AdminIncidentsPage() {
     }, 300)
     return () => clearTimeout(debounce)
   }, [fetchIncidents])
+
+  useEffect(() => {
+    async function fetchAssignableUsers() {
+      try {
+        const response = await fetch("/api/admin/users?role=ADMIN")
+        if (!response.ok) throw new Error("Failed to fetch users")
+        const admins = await response.json()
+
+        const response2 = await fetch("/api/admin/users?role=USER")
+        if (!response2.ok) throw new Error("Failed to fetch users")
+        const users = await response2.json()
+
+        setAssignableUsers([...admins, ...users])
+      } catch {
+        // Silently fail - assignment dropdown will be empty
+      }
+    }
+    fetchAssignableUsers()
+  }, [])
+
+  const handleAssign = async (incidentId: string, assigneeId: string | null) => {
+    try {
+      const response = await fetch(`/api/incidents/${incidentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assigneeId }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to assign incident")
+      }
+
+      const updated = await response.json()
+      setIncidents((prev) =>
+        prev.map((i) =>
+          i.id === incidentId
+            ? { ...i, assigneeId: updated.assigneeId, assignee: updated.assignee }
+            : i
+        )
+      )
+      toast.success(assigneeId ? "Incident assigned" : "Incident unassigned")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to assign")
+    }
+  }
 
   const activeCount = incidents.filter(
     (i) => i.status === "OPEN" || i.status === "INVESTIGATING"
@@ -186,11 +246,11 @@ export default function AdminIncidentsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Incident</TableHead>
-                    <TableHead>Owner</TableHead>
+                    <TableHead>Reporter</TableHead>
+                    <TableHead>Assignee</TableHead>
                     <TableHead>Severity</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
-                    <TableHead>Resolution Time</TableHead>
                     <TableHead className="w-[80px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -209,13 +269,44 @@ export default function AdminIncidentsPage() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">
-                            {incident.user.name || "—"}
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">
+                              {incident.user.name || "—"}
+                            </span>
+                            {incident.user.role === "REPORTER" && (
+                              <Badge className="bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300 text-xs">
+                                Reporter
+                              </Badge>
+                            )}
                           </div>
                           <div className="text-sm text-muted-foreground">
                             {incident.user.email}
                           </div>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={incident.assigneeId || "unassigned"}
+                          onValueChange={(value) =>
+                            handleAssign(incident.id, value === "unassigned" ? null : value)
+                          }
+                        >
+                          <SelectTrigger className="w-[160px] h-8 text-xs">
+                            <SelectValue>
+                              {incident.assignee
+                                ? incident.assignee.name || incident.assignee.email
+                                : "Unassigned"}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="unassigned">Unassigned</SelectItem>
+                            {assignableUsers.map((user) => (
+                              <SelectItem key={user.id} value={user.id}>
+                                {user.name || user.email}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell>
                         <Badge className={severityColors[incident.severity]}>
@@ -236,18 +327,6 @@ export default function AdminIncidentsPage() {
                             addSuffix: true,
                           })}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        {incident.resolvedAt ? (
-                          <div className="text-sm">
-                            {formatDistanceToNow(
-                              new Date(incident.createdAt),
-                              { includeSeconds: true }
-                            ).replace("about ", "")}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
                       </TableCell>
                       <TableCell>
                         <Button

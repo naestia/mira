@@ -28,7 +28,7 @@ const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(["USER", "ADMIN"]),
+  role: z.enum(["USER", "ADMIN", "REPORTER"]),
 })
 
 type CreateUserInput = z.infer<typeof createUserSchema>
@@ -130,11 +130,14 @@ export function UserForm({ open, onOpenChange, onSubmit }: UserFormProps) {
             <Label htmlFor="role">Role</Label>
             <Select value={role} onValueChange={(value) => setValue("role", value as Role)}>
               <SelectTrigger>
-                <SelectValue>{role === "ADMIN" ? "Admin" : "User"}</SelectValue>
+                <SelectValue>
+                  {role === "ADMIN" ? "Admin" : role === "REPORTER" ? "Reporter" : "User"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="USER">User</SelectItem>
                 <SelectItem value="ADMIN">Admin</SelectItem>
+                <SelectItem value="REPORTER">Reporter</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -27,7 +27,8 @@ model User {
   createdGroups       Group[]             @relation("GroupCreator")
   memberships         GroupMembership[]
   joinRequests        JoinRequest[]
-  incidents           Incident[]
+  incidents           Incident[]          @relation("IncidentCreator")
+  assignedIncidents   Incident[]          @relation("IncidentAssignee")
   notifications       Notification[]
   createdProjects     Project[]           @relation("ProjectCreator")
   projectMemberships  ProjectMembership[]
@@ -95,6 +96,7 @@ enum Priority {
 enum Role {
   USER
   ADMIN
+  REPORTER
 }
 
 enum Visibility {
@@ -222,11 +224,14 @@ model Incident {
   updatedAt     DateTime        @updatedAt
   resolvedAt    DateTime?
   userId        String
-  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User            @relation("IncidentCreator", fields: [userId], references: [id], onDelete: Cascade)
+  assigneeId    String?
+  assignee      User?           @relation("IncidentAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   timeline      TimelineEvent[]
   notifications Notification[]
 
   @@index([userId])
+  @@index([assigneeId])
   @@index([status])
 }
 
@@ -273,5 +278,6 @@ enum EventType {
   STATUS_CHANGED
   SEVERITY_CHANGED
   NOTE_ADDED
+  ASSIGNED
   RESOLVED
 }

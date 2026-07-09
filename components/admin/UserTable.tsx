@@ -80,6 +80,7 @@ export function UserTable({
             <SelectItem value="all">All roles</SelectItem>
             <SelectItem value="USER">User</SelectItem>
             <SelectItem value="ADMIN">Admin</SelectItem>
+            <SelectItem value="REPORTER">Reporter</SelectItem>
           </SelectContent>
         </Select>
       </div>

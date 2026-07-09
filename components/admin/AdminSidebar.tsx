@@ -33,13 +33,13 @@ export function AdminSidebar() {
     <div className="flex h-full w-64 flex-col border-r bg-card">
       <div className="flex h-16 items-center gap-2 border-b px-6">
         <Shield className="h-6 w-6 text-primary" />
-        <span className="text-lg font-semibold">Admin Portal</span>
+        <span className="text-xl font-bold tracking-tight">Admin Portal</span>
       </div>
 
       <nav className="flex-1 space-y-1 p-4">
         <Link
           href="/dashboard"
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground mb-4"
+          className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-[15px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground mb-4"
         >
           <ArrowLeft className="h-5 w-5" />
           Back to App
@@ -53,10 +53,10 @@ export function AdminSidebar() {
               key={item.name}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-xl px-4 py-2.5 text-[15px] font-medium transition-all",
                 isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
               )}
             >
               <item.icon className="h-5 w-5" />
@@ -69,10 +69,10 @@ export function AdminSidebar() {
       <div className="border-t p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">
+            <p className="text-[15px] font-medium truncate">
               {session?.user?.name || "Admin"}
             </p>
-            <p className="text-xs text-muted-foreground truncate">
+            <p className="text-sm text-muted-foreground truncate">
               {session?.user?.email}
             </p>
           </div>
