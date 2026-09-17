@@ -1,9 +1,7 @@
 name: Build and push beta image
 
 on:
-  push:
-    branches:
-      - develop
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io

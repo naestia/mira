@@ -1,9 +1,7 @@
 name: Build and push develop image
 
 on:
-  push:
-    branches:
-      - feature/*
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
