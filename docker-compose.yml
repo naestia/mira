@@ -6,15 +6,9 @@ services:
     ports:
       - "3000:3000"
     environment:
-<<<<<<< Updated upstream
-      - DATABASE_URL=${DATABASE_URL:-postgresql://mira:mira_password@db:5435/mira}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-your-secret-change-in-production}
-      - NEXTAUTH_URL=http://localhost:3000
-=======
       - DATABASE_URL=postgresql://mira_svc:${POSTGRES_PASSWORD}@db:5432/mira
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NEXTAUTH_URL=http://mira:3000
->>>>>>> Stashed changes
     depends_on:
       db:
         condition: service_healthy
@@ -51,11 +45,7 @@ services:
       target: builder
     command: npx prisma migrate deploy
     environment:
-<<<<<<< Updated upstream
-      - DATABASE_URL=${DATABASE_URL:-postgresql://mira:mira_password@db:5435/mira}
-=======
       - DATABASE_URL=postgresql://mira_svc:${POSTGRES_PASSWORD}@db:5432/mira
->>>>>>> Stashed changes
     depends_on:
       db:
         condition: service_healthy
