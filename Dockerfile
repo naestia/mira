@@ -15,6 +15,7 @@ COPY . .
 # Generate Prisma client
 RUN npx prisma generate
 
+
 # Build the application
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
