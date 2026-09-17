@@ -1,0 +1,30 @@
+# Thin caller — all the build/push logic lives in the shared reusable workflow.
+# Pin @v1 to a released tag of the ci-workflows repo (or @main while iterating).
+
+name: Build
+
+on:
+  push:
+    branches: [master, develop]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: your-org/ci-workflows/.github/workflows/docker-build.yml@v1
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    with:
+      image-name: mira
+      # GHCR is on by default; enable ECR once AWS is set up:
+      push-ecr: false
+      aws-region: eu-north-1
+      # Per-image build args:
+      build-args: |
+        NEXT_PUBLIC_APP_URL=https://mira.example.com
+        NODE_ENV=production
+    secrets:
+      aws-role-arn: ${{ secrets.AWS_ROLE_ARN }}
