@@ -11,10 +11,11 @@ import { ProjectGroupList } from "@/components/projects/ProjectGroupList"
 import { ProjectMemberList } from "@/components/projects/ProjectMemberList"
 import { TaskList } from "@/components/tasks/TaskList"
 import { TaskForm } from "@/components/tasks/TaskForm"
-import { Loader2, ArrowLeft, FolderKanban, Users, FileText, CheckSquare, Plus, AlertTriangle } from "lucide-react"
+import { Loader2, ArrowLeft, FolderKanban, Users, FileText, CheckSquare, Plus, AlertTriangle, LayoutGrid } from "lucide-react"
 import { toast } from "sonner"
 import { TaskWithRelations, Tag, Status } from "@/types"
 import { TaskInput } from "@/lib/validations"
+import { ProjectBoard } from "@/components/board/ProjectBoard"
 
 interface Project {
   id: string
@@ -64,7 +65,7 @@ interface Member {
   }
 }
 
-type Tab = "overview" | "groups" | "members" | "tasks"
+type Tab = "overview" | "groups" | "members" | "tasks" | "board"
 
 export default function ProjectPage() {
   const params = useParams()
@@ -370,6 +371,7 @@ export default function ProjectPage() {
     { id: "groups" as Tab, label: "Groups", icon: FolderKanban, count: groups.length },
     { id: "members" as Tab, label: "Members", icon: Users, count: members.length },
     { id: "tasks" as Tab, label: "Tasks", icon: CheckSquare, count: tasks.length },
+    { id: "board" as Tab, label: "Board", icon: LayoutGrid },
   ]
 
   const canCreateTask = (project.isMember || isAdmin) && !isArchived
@@ -485,6 +487,41 @@ export default function ProjectPage() {
               onSubtaskToggle={handleSubtaskToggle}
               onSubtaskAdd={handleSubtaskAdd}
               onSubtaskDelete={handleSubtaskDelete}
+            />
+
+            {!isArchived && (
+              <TaskForm
+                open={isTaskFormOpen}
+                onOpenChange={handleTaskFormClose}
+                task={editingTask}
+                tags={tags}
+                groups={[]}
+                onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
+                onCreateTag={handleCreateTag}
+              />
+            )}
+          </div>
+        )}
+
+        {activeTab === "board" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Board</h2>
+              {canCreateTask && (
+                <Button onClick={() => setIsTaskFormOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Task
+                </Button>
+              )}
+            </div>
+
+            <ProjectBoard
+              projectId={projectId}
+              canEdit={project.isMember || isAdmin}
+              isArchived={isArchived}
+              tasks={tasks}
+              onEditTask={handleEditTask}
+              onTasksChanged={fetchTasks}
             />
 
             {!isArchived && (

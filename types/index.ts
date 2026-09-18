@@ -1,6 +1,6 @@
-import { Task, Subtask, Tag, User, Status, Priority, Role, Group, GroupMembership, JoinRequest, JoinRequestStatus } from "@prisma/client"
+import { Task, Subtask, Tag, User, Status, Priority, Role, Group, GroupMembership, JoinRequest, JoinRequestStatus, Label } from "@prisma/client"
 
-export type { Task, Subtask, Tag, User, Status, Priority, Role, Group, GroupMembership, JoinRequest, JoinRequestStatus }
+export type { Task, Subtask, Tag, User, Status, Priority, Role, Group, GroupMembership, JoinRequest, JoinRequestStatus, Label }
 
 export type TaskWithRelations = Task & {
   subtasks: Subtask[]

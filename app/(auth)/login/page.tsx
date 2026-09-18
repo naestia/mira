@@ -60,7 +60,7 @@ export default function LoginPage() {
           Enter your email or username to access your account
         </CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form method="post" onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-4">
           {error && (
             <div className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-950 rounded-md">

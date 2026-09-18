@@ -39,6 +39,26 @@ export const tagSchema = z.object({
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format").optional(),
 })
 
+export const labelSchema = z.object({
+  name: z.string().min(1, "Name is required").max(50, "Name too long"),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format").optional(),
+})
+
+export const labelUpdateSchema = z.object({
+  name: z.string().min(1, "Name is required").max(50, "Name too long").optional(),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format").optional(),
+  position: z.number().int().min(0).optional(),
+})
+
+// Moving a card on the board: which task moved, into which column (or null for
+// the unlabeled column), and the full ordering of that target column so the
+// server can persist positions deterministically.
+export const boardMoveSchema = z.object({
+  taskId: z.string().min(1),
+  toLabelId: z.string().nullable(),
+  orderedTaskIds: z.array(z.string()),
+})
+
 // Admin validations
 export const adminUserCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -85,6 +105,9 @@ export type TaskUpdateInput = z.infer<typeof taskUpdateSchema>
 export type SubtaskInput = z.infer<typeof subtaskSchema>
 export type SubtaskUpdateInput = z.infer<typeof subtaskUpdateSchema>
 export type TagInput = z.infer<typeof tagSchema>
+export type LabelInput = z.infer<typeof labelSchema>
+export type LabelUpdateInput = z.infer<typeof labelUpdateSchema>
+export type BoardMoveInput = z.infer<typeof boardMoveSchema>
 export type AdminUserCreateInput = z.infer<typeof adminUserCreateSchema>
 export type AdminUserUpdateInput = z.infer<typeof adminUserUpdateSchema>
 export type AppSettingsUpdateInput = z.infer<typeof appSettingsUpdateSchema>

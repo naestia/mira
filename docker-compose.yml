@@ -12,8 +12,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
     restart: unless-stopped
     networks:
       - mira
@@ -34,22 +32,6 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-    networks:
-      - mira
-
-  # Database migrations job (run once)
-  migrate:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: builder
-    command: npx prisma migrate deploy
-    environment:
-      - DATABASE_URL=postgresql://mira_svc:${POSTGRES_PASSWORD}@db:5432/mira
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: "no"
     networks:
       - mira
 
