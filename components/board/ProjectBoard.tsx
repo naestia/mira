@@ -216,7 +216,10 @@ export function ProjectBoard({
     }
   }
 
-  const patchLabel = async (id: string, data: { name?: string; color?: string }) => {
+  const patchLabel = async (
+    id: string,
+    data: { name?: string; color?: string; status?: TaskWithRelations["status"] }
+  ) => {
     setLabels((prev) => prev.map((l) => (l.id === id ? { ...l, ...data } : l)))
     try {
       const res = await fetch(`/api/labels/${id}`, {
@@ -225,6 +228,9 @@ export function ProjectBoard({
         body: JSON.stringify(data),
       })
       if (!res.ok) throw new Error()
+      // Remapping a column's status changes the status of the cards already in
+      // it, so pull fresh task data.
+      if (data.status) onTasksChanged()
     } catch {
       toast.error("Failed to update label")
       fetchLabels()
@@ -271,6 +277,7 @@ export function ProjectBoard({
             onEditTask={onEditTask}
             onRenameLabel={(lid, name) => patchLabel(lid, { name })}
             onRecolorLabel={(lid, color) => patchLabel(lid, { color })}
+            onSetLabelStatus={(lid, status) => patchLabel(lid, { status })}
             onDeleteLabel={deleteLabel}
           />
         ))}

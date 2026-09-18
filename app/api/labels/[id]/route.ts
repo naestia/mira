@@ -60,6 +60,15 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
       data: result.data,
     })
 
+    // A column's status drives the status of the cards in it — keep them in
+    // sync when the mapping changes.
+    if (result.data.status) {
+      await prisma.task.updateMany({
+        where: { labelId: id },
+        data: { status: result.data.status },
+      })
+    }
+
     return NextResponse.json(updated)
   } catch (error) {
     console.error("Error updating label:", error)

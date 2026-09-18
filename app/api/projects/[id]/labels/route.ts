@@ -8,11 +8,12 @@ export const dynamic = "force-dynamic"
 
 type Params = Promise<{ id: string }>
 
-// Default columns seeded the first time a project's board is opened.
+// Default columns seeded the first time a project's board is opened. Each maps
+// to the underlying task status a card takes when dropped in that column.
 const DEFAULT_LABELS = [
-  { name: "To Do", color: "#7c7263" },
-  { name: "In Progress", color: "#b0784e" },
-  { name: "Done", color: "#2f7d4d" },
+  { name: "To Do", color: "#7c7263", status: "TODO" as const },
+  { name: "In Progress", color: "#b0784e", status: "IN_PROGRESS" as const },
+  { name: "Done", color: "#2f7d4d", status: "DONE" as const },
 ]
 
 async function getProjectAccess(projectId: string, userId: string) {
@@ -55,7 +56,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
       await prisma.$transaction(
         DEFAULT_LABELS.map((l, i) =>
           prisma.label.create({
-            data: { name: l.name, color: l.color, position: i, projectId: id },
+            data: { name: l.name, color: l.color, status: l.status, position: i, projectId: id },
           })
         )
       )
@@ -118,6 +119,7 @@ export async function POST(request: Request, { params }: { params: Params }) {
       data: {
         name: result.data.name,
         color: result.data.color ?? "#b0784e",
+        status: result.data.status ?? "TODO",
         position,
         projectId: id,
       },

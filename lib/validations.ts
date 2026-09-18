@@ -42,11 +42,13 @@ export const tagSchema = z.object({
 export const labelSchema = z.object({
   name: z.string().min(1, "Name is required").max(50, "Name too long"),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format").optional(),
+  status: z.enum(["TODO", "IN_PROGRESS", "DONE"]).optional(),
 })
 
 export const labelUpdateSchema = z.object({
   name: z.string().min(1, "Name is required").max(50, "Name too long").optional(),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format").optional(),
+  status: z.enum(["TODO", "IN_PROGRESS", "DONE"]).optional(),
   position: z.number().int().min(0).optional(),
 })
 

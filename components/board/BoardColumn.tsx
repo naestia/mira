@@ -8,12 +8,20 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Trash2 } from "lucide-react"
+import { MoreHorizontal, Trash2, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { TaskWithRelations, Label } from "@/types"
+import { TaskWithRelations, Label, Status } from "@/types"
 import { BoardCard } from "./BoardCard"
+
+const STATUS_OPTIONS: { value: Status; label: string }[] = [
+  { value: "TODO", label: "To Do" },
+  { value: "IN_PROGRESS", label: "In Progress" },
+  { value: "DONE", label: "Done" },
+]
 
 interface BoardColumnProps {
   columnId: string
@@ -23,6 +31,7 @@ interface BoardColumnProps {
   onEditTask: (task: TaskWithRelations) => void
   onRenameLabel: (id: string, name: string) => void
   onRecolorLabel: (id: string, color: string) => void
+  onSetLabelStatus: (id: string, status: Status) => void
   onDeleteLabel: (id: string) => void
 }
 
@@ -34,6 +43,7 @@ export function BoardColumn({
   onEditTask,
   onRenameLabel,
   onRecolorLabel,
+  onSetLabelStatus,
   onDeleteLabel,
 }: BoardColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: columnId })
@@ -107,6 +117,24 @@ export function BoardColumn({
               <MoreHorizontal className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                Marks tasks as
+              </DropdownMenuLabel>
+              {STATUS_OPTIONS.map((opt) => (
+                <DropdownMenuItem
+                  key={opt.value}
+                  onClick={() => onSetLabelStatus(label!.id, opt.value)}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      label!.status === opt.value ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {opt.label}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => onDeleteLabel(label!.id)}
                 className="text-red-600"

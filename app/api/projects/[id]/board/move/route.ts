@@ -54,15 +54,19 @@ export async function POST(request: Request, { params }: { params: Params }) {
       return NextResponse.json({ error: "Task not found in this project" }, { status: 404 })
     }
 
-    // The destination column (if any) must belong to this project.
+    // The destination column (if any) must belong to this project. Its mapped
+    // status is applied to every card moved into it, so the board and the
+    // task's status stay in sync.
+    let destStatus: "TODO" | "IN_PROGRESS" | "DONE" | undefined
     if (toLabelId) {
       const label = await prisma.label.findFirst({
         where: { id: toLabelId, projectId },
-        select: { id: true },
+        select: { id: true, status: true },
       })
       if (!label) {
         return NextResponse.json({ error: "Label not found in this project" }, { status: 404 })
       }
+      destStatus = label.status
     }
 
     // Only reorder tasks that actually live in this project (guards against
@@ -82,7 +86,13 @@ export async function POST(request: Request, { params }: { params: Params }) {
         .map((tid, index) =>
           prisma.task.update({
             where: { id: tid },
-            data: { labelId: toLabelId, position: index },
+            data: {
+              labelId: toLabelId,
+              position: index,
+              // Only tasks moving into a real column adopt its status; the
+              // "No label" column leaves the existing status untouched.
+              ...(destStatus ? { status: destStatus } : {}),
+            },
           })
         )
     )
